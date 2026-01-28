@@ -1,62 +1,65 @@
 # Battle Arena
 
-Небольшой консольный симулятор поединков между генерируемыми бойцами. Проект написан на Python и представляет «арену», где случайно выбранные персонажи сражаются до победы, используя вещи, атаку и защиту. Есть шанс критического удара и финальная «битва победителей».
+A small console-based duel simulator with randomly generated fighters. The project is written in Python and represents an “arena” where randomly selected characters fight until one wins, using items, attack, and defense. There is a chance of a critical hit and a final “battle of winners”.
 
-## Возможности
-- Генерация бойцов с разными классами: `Paladin` и `Warrior`.
-- Случайная выдача вещей бойцам (`Weapon`) с бонусами к урону и защите.
-- Пошаговые дуэли с логом боя в консоли.
-- Шанс критического удара (x3 к атаке при низком здоровье).
-- Турнирная логика: формируются победители, затем проводится их финальная битва.
+## Features
+- Fighter generation with different classes: `Paladin` and `Warrior`.
+- Random assignment of items (`Weapon`) to fighters with bonuses to damage and defense.
+- Turn-based duels with battle logs printed to the console.
+- Critical hit chance (x3 attack when health is low).
+- Tournament logic: winners are collected and then fight in a final winners bracket.
 
-## Структура проекта
+## Project Structure
+
 ```
-arena.py        # основной исполняемый файл с логикой боя
-README.md       # это описание проекта
-.gitignore      # настройки игнора Git
+arena.py #   main executable file containing the battle logic
+README.md #  this project description
+.gitignore # Git ignore settings
 ```
 
-## Требования
-- Python 3.8+ (рекомендуется 3.10 или новее)
+## Requirements
+- Python 3.8+ (3.10 or newer is recommended)
 
-Стандартная библиотека используется полностью, внешние зависимости не требуются.
+Only the standard library is used; no external dependencies are required.
 
-## Установка и запуск
-1. Склонируйте репозиторий или скачайте исходники.
-2. Запустите симулятор:
+## Installation & Run
+1. Clone the repository or download the source code.
+2. Run the simulator:
    ```bash
    python3 arena.py
-   ```
 
-Логи боёв будут выводиться в консоль. Для остановки нажмите Ctrl+C.
 
-## Как это работает (кратко)
-- `Weapon` — предмет с полями: `name`, `protection`, `damage`.
-- `Person` — базовый класс бойца: имя, здоровье (`hp`), базовая атака и защита.
-  - Метод `crit_chance()` при `hp <= 50` даёт 10% шанс активировать критический удар (x3 к атаке).
-- `Paladin(Person)` — больше здоровья и защиты (x2).
-- `Warrior(Person)` — больше базовой атаки (x2).
-- Перед боем каждому бойцу выдают от 1 до 4 случайных предметов.
-- В каждом раунде выбираются случайные атакующие и защитные предметы, урон и защита пересчитываются, до тех пор пока один из бойцов не упадёт до `hp <= 0`.
-- Победители накапливаются в список и в конце сражаются между собой.
+Battle logs will be printed to the console. To stop the program, press Ctrl+C.
 
-## Кастомизация
-- Имена бойцов: список `WARRIORS_NAMES` в `arena.py` (верх файла).
-- Набор предметов: список `THINGS` в `arena.py`.
-- Диапазоны параметров генерации (урон/защита/здоровье): функции `generate_weapons()` и `generate_person()`.
-- Скорость боя: пауза `BATTLE_SPEED` внутри основного цикла боя — можно увеличить/уменьшить.
+Battle logs will be printed to the console. To stop the program, press `Ctrl+C`.
 
-## Известные особенности
-- Значения урона/защиты рассчитываются случайно перед каждым ударом, из-за чего бои непредсказуемы.
-- Логика выбора пар бойцов использует случайные индексы и удаление из списка, что делает каждый запуск уникальным.
-- Вывод содержит эмодзи и английские фразы; при желании можно локализовать строки в `arena.py`.
+## How It Works (Briefly)
+- `Weapon` — an item with fields: `name`, `protection`, `damage`.
+- `Person` — the base fighter class: name, health (`hp`), base attack, and base defense.
+  - The `crit_chance()` method, when `hp <= 50`, gives a 10% chance to activate a critical hit (x3 attack).
+- `Paladin(Person)` — more health and defense (x2).
+- `Warrior(Person)` — higher base attack (x2).
+- Before the fight, each fighter receives 1 to 4 random items.
+- In each round, random items are chosen for attacking and defending, damage and defense are recalculated, and the fight continues until one fighter reaches `hp <= 0`.
+- Winners are collected into a list and fight each other at the end.
 
-## Идеи для улучшений
-- Добавить CLI-параметры: количество вещей, задержка между ударами, число бойцов, уровень логирования.
-- Визуализировать турнирную сетку и статистику боя.
-- Написать тесты на генерацию данных и корректность расчётов урона/защиты.
-- Ввести балансировочные коэффициенты для классов и предметов.
-- Сохранение и загрузка результатов боёв в JSON/CSV.
+## Customization
+- Fighter names: `WARRIORS_NAMES` list in `arena.py` (top of the file).
+- Items set: `THINGS` list in `arena.py`.
+- Generation ranges (damage/defense/health): `generate_weapons()` and `generate_person()` functions.
+- Battle speed: the `BATTLE_SPEED` delay inside the main fight loop — increase/decrease as needed.
+
+## Known Behaviors
+- Damage/defense values are calculated randomly before each hit, making fights unpredictable.
+- Pair selection uses random indices and list removal, which makes every run unique.
+- Output includes emojis and English phrases; you can localize the strings in `arena.py` if desired.
+
+## Ideas for Improvements
+- Add CLI parameters: number of items, hit delay, number of fighters, logging level.
+- Visualize the tournament bracket and battle stats.
+- Write tests for data generation and correctness of damage/defense calculations.
+- Introduce balancing coefficients for classes and items.
+- Save/load battle results to JSON/CSV.
 
 
 ---
