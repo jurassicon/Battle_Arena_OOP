@@ -44,13 +44,13 @@ WEAPON_NAMES = [
     "Underpants",
 ]
 
-# Скорость (пауза) между ударами в секундах.
+# Pause between attack actions (seconds). Set to 0 for instant battles.
 BATTLE_SPEED = 0.2
 
-# Подробный лог каждого удара.
+# Print detailed logs for each attack action.
 VERBOSE_FIGHT_LOG = True
 
-# Защита от бесконечной драки: максимум "атакующих действий" в одном матче.
+# Safety guard for very long fights when damage frequently becomes 0.
 MAX_ATTACK_ACTIONS_PER_MATCH = 200
 
 
@@ -71,24 +71,30 @@ class Weapon:
 class Person:
     name: str
     hp: float
-    weapons: List[Weapon]
+    weapons: List["Weapon"]
     base_attack: int
     base_protection: float
 
-    def __init__(self, name: str, hp: int, attack: int, protection: float) -> None:
+    def __init__(
+        self,
+        name: str,
+        hp: int,
+        attack: int,
+        protection: float,
+    ) -> None:
         self.name = name
         self.hp = float(hp)
         self.base_attack = int(attack)
         self.base_protection = float(protection)
         self.weapons = []
 
-    def set_weapons(self, weapons: List[Weapon]) -> None:
+    def set_weapons(self, weapons: List["Weapon"]) -> None:
         self.weapons = weapons
 
     def __repr__(self) -> str:
-        # Форматируем hp, чтобы не видеть артефакты float в выводе.
         return (
-            f"{self.__class__.__name__}(name={self.name!r}, hp={self.hp:.1f}, "
+            f"{self.__class__.__name__}("
+            f"name={self.name!r}, hp={self.hp:.1f}, "
             f"damage={self.base_attack}, prot={self.base_protection:.2f}, "
             f"weapons={self.weapons!r})"
         )
@@ -102,24 +108,40 @@ class Person:
 
     def roll_crit_multiplier(self) -> int:
         """
-        Если hp <= 50, то 10% шанс крит-удара: базовая атака * 3.
+        If hp <= 50, there is a 10% chance to activate a critical hit:
+        base_attack * 3.
         """
         if self.hp <= 50 and random.randint(1, 10) == 1:
             if VERBOSE_FIGHT_LOG:
-                print(f"💥 💥 💥 {self.name} activated a critical hit! 💥 💥 💥")
+                print(
+                    f"💥 💥 💥 {self.name} activated a critical hit! "
+                    f"💥 💥 💥"
+                )
             return 3
         return 1
 
 
 class Paladin(Person):
-    def __init__(self, name: str, hp: int, base_attack: int, protection: float) -> None:
+    def __init__(
+        self,
+        name: str,
+        hp: int,
+        base_attack: int,
+        protection: float,
+    ) -> None:
         super().__init__(name, hp, base_attack, protection)
         self.hp = float(hp * 2)
         self.base_protection = float(protection * 2)
 
 
 class Warrior(Person):
-    def __init__(self, name: str, hp: int, base_attack: int, protection: float) -> None:
+    def __init__(
+        self,
+        name: str,
+        hp: int,
+        base_attack: int,
+        protection: float,
+    ) -> None:
         super().__init__(name, hp, base_attack, protection)
         self.base_attack = int(base_attack * 2)
 
@@ -130,10 +152,10 @@ def apply_hit(defender: Person, hit: float) -> None:
 
 def calc_damage(attacker: Person) -> Tuple[float, bool, Weapon]:
     """
-    Возвращает:
-    - raw_damage: базовая атака (+крит) + урон оружия
-    - is_crit
-    - selected_weapon
+    Returns:
+      - raw_damage: (base_attack * crit_multiplier) + weapon.damage
+      - is_crit
+      - selected_weapon
     """
     selected_weapon = random.choice(attacker.weapons)
     crit_mult = attacker.roll_crit_multiplier()
@@ -143,9 +165,9 @@ def calc_damage(attacker: Person) -> Tuple[float, bool, Weapon]:
 
 def calc_protection(defender: Person) -> Tuple[float, Weapon]:
     """
-    Возвращает:
-    - total_protection: базовая защита + защита предмета
-    - selected_weapon
+    Returns:
+      - total_protection: base_protection + weapon.protection
+      - selected_weapon
     """
     selected_weapon = random.choice(defender.weapons)
     total_protection = defender.base_protection + selected_weapon.protection
@@ -219,29 +241,39 @@ class MatchResult:
 
 def get_stats(stats: Dict[str, FighterStats], p: Person) -> FighterStats:
     if p.name not in stats:
-        stats[p.name] = FighterStats(name=p.name, cls_name=p.__class__.__name__)
+        stats[p.name] = FighterStats(
+            name=p.name,
+            cls_name=p.__class__.__name__,
+        )
     return stats[p.name]
 
 
 def fight(
-    a: Person,
-    b: Person,
+    fighter_a: Person,
+    fighter_b: Person,
     round_no: int,
     match_no: int,
     stats: Dict[str, FighterStats],
 ) -> MatchResult:
-    # Кто первый атакует — случайно.
-    attacker, defender = (a, b) if random.random() < 0.5 else (b, a)
+    attacker, defender = (
+        (fighter_a, fighter_b)
+        if random.random() < 0.5
+        else (fighter_b, fighter_a)
+    )
 
     attack_actions = 0
     resolved_by = "ko"
 
     if VERBOSE_FIGHT_LOG:
         print("\n__NEW fight is begin!__")
-        print(f"Fighter A: {a}")
-        print(f"Fighter B: {b}")
+        print(f"Fighter A: {fighter_a}")
+        print(f"Fighter B: {fighter_b}")
 
-    while a.hp > 0 and b.hp > 0 and attack_actions < MAX_ATTACK_ACTIONS_PER_MATCH:
+    while (
+        fighter_a.hp > 0
+        and fighter_b.hp > 0
+        and attack_actions < MAX_ATTACK_ACTIONS_PER_MATCH
+    ):
         attack_actions += 1
 
         raw_damage, is_crit, atk_item = calc_damage(attacker)
@@ -252,8 +284,9 @@ def fight(
             print(f"Attacker {attacker.name} uses {atk_item}")
             if is_crit:
                 print(
-                    f"CRIT x3! Base ATK {attacker.base_attack} "
-                    f"-> {attacker.base_attack * 3}"
+                    "CRIT x3! Base ATK "
+                    f"{attacker.base_attack} -> "
+                    f"{attacker.base_attack * 3}"
                 )
             print(f"Defender {defender.name} blocks with {def_item}")
             if hit == 0.0:
@@ -263,7 +296,6 @@ def fight(
 
         apply_hit(defender, hit)
 
-        # stats update
         s_att = get_stats(stats, attacker)
         s_def = get_stats(stats, defender)
 
@@ -282,28 +314,37 @@ def fight(
         if VERBOSE_FIGHT_LOG:
             print(f"After hit: {defender.name} HP={defender.hp:.1f}")
 
-        # Меняем роли: теперь другой атакует.
         attacker, defender = defender, attacker
 
         if BATTLE_SPEED > 0:
             sleep(BATTLE_SPEED)
 
-    # Разрешаем исход матча
-    if attack_actions >= MAX_ATTACK_ACTIONS_PER_MATCH and a.hp > 0 and b.hp > 0:
+    if (
+        attack_actions >= MAX_ATTACK_ACTIONS_PER_MATCH
+        and fighter_a.hp > 0
+        and fighter_b.hp > 0
+    ):
         resolved_by = "timeout"
         if VERBOSE_FIGHT_LOG:
             print("⏱️ Match timeout reached. Resolving by current HP.")
 
-        if a.hp > b.hp:
-            winner, loser = a, b
-        elif b.hp > a.hp:
-            winner, loser = b, a
+        if fighter_a.hp > fighter_b.hp:
+            winner, loser = fighter_a, fighter_b
+        elif fighter_b.hp > fighter_a.hp:
+            winner, loser = fighter_b, fighter_a
         else:
-            winner, loser = (a, b) if random.random() < 0.5 else (b, a)
+            winner, loser = (
+                (fighter_a, fighter_b)
+                if random.random() < 0.5
+                else (fighter_b, fighter_a)
+            )
     else:
-        winner, loser = (a, b) if a.hp > 0 else (b, a)
+        winner, loser = (
+            (fighter_a, fighter_b)
+            if fighter_a.hp > 0
+            else (fighter_b, fighter_a)
+        )
 
-    # итог wins/losses
     s_w = get_stats(stats, winner)
     s_l = get_stats(stats, loser)
     s_w.fights += 1
@@ -313,15 +354,17 @@ def fight(
 
     if VERBOSE_FIGHT_LOG:
         print(
-            f"🏁 Winner: {winner.name} (HP={winner.hp:.1f}) | "
-            f"Loser: {loser.name} (HP={loser.hp:.1f})"
+            "🏁 Winner: "
+            f"{winner.name} (HP={winner.hp:.1f}) | "
+            "Loser: "
+            f"{loser.name} (HP={loser.hp:.1f})"
         )
 
     return MatchResult(
         round_no=round_no,
         match_no=match_no,
-        a_name=a.name,
-        b_name=b.name,
+        a_name=fighter_a.name,
+        b_name=fighter_b.name,
         winner=winner.name,
         loser=loser.name,
         attacks=attack_actions,
@@ -372,13 +415,15 @@ def run_tournament(
                 i += 1
                 continue
 
-            a = current_round[i]
-            b = current_round[i + 1]
+            fighter_a = current_round[i]
+            fighter_b = current_round[i + 1]
 
-            res = fight(a, b, round_no, match_no, stats)
+            res = fight(fighter_a, fighter_b, round_no, match_no, stats)
             round_matches.append(res)
 
-            winner_obj = a if res.winner == a.name else b
+            winner_obj = (
+                fighter_a if res.winner == fighter_a.name else fighter_b
+            )
             next_round.append(winner_obj)
 
             match_no += 1
@@ -398,7 +443,10 @@ def print_bracket(bracket: List[List[MatchResult]]) -> None:
     print("=" * 28)
 
     for round_matches in bracket:
-        round_no = round_matches[0].round_no if round_matches else 0
+        if not round_matches:
+            continue
+
+        round_no = round_matches[0].round_no
         print(f"\nRound {round_no}")
 
         for m in round_matches:
@@ -429,11 +477,15 @@ def print_stats(
     print("\nTop wins:")
     for s in top_wins:
         print(
-            f"  {s.name} ({s.cls_name}) — wins={s.wins}, fights={s.fights}, "
-            f"dmg={s.damage_dealt:.1f}"
+            f"  {s.name} ({s.cls_name}) — wins={s.wins}, "
+            f"fights={s.fights}, dmg={s.damage_dealt:.1f}"
         )
 
-    top_damage = sorted(stats.values(), key=lambda s: s.damage_dealt, reverse=True)[:5]
+    top_damage = sorted(
+        stats.values(),
+        key=lambda s: s.damage_dealt,
+        reverse=True,
+    )[:5]
     print("\nTop damage dealers:")
     for s in top_damage:
         print(
@@ -454,7 +506,7 @@ def print_stats(
             if longest is None or m.attacks > longest.attacks:
                 longest = m
 
-    if longest:
+    if longest is not None:
         print("\nLongest match:")
         print(
             f"  Round {longest.round_no} Match {longest.match_no}: "
@@ -465,6 +517,7 @@ def print_stats(
 
 def main() -> None:
     fighters = dress_up_warrior()
+    print(f"Имен в списке: {len(WARRIORS_NAMES)}")
 
     champion, bracket, stats = run_tournament(fighters)
 
